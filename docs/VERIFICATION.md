@@ -43,3 +43,29 @@ MCP walkthrough (`playwright-headless` against `node bin/livemap.mjs`, data from
 - E2E-09: pass — 19 row ids identical in order after a reload; status Live. (Nodes and edges are 0 at this stage; the map arrives in stage 2.)
 
 Surprises: none in behaviour. Feed row times are local (the machine is UTC−4), as decided.
+
+## Stage 2 — Map (2026-10-09)
+
+Commands:
+
+- `npm run typecheck` — clean.
+- `npm test` — 73 passed, 0 failed (adds pair: every pairing bullet, both arrival orders, the same-call-twice rule; graph: fixed slots, rows never reused, rolling counts, node merge; engine: pair in either order, learned addresses, server-first then client, orphan after 300 ms, external then late pairing correction, LLM HTTP child hidden whichever arrives first, eviction, feed cap, log attachment, trace depth, clear).
+- `npx playwright test -g "@stage0|@stage1|@stage2" --retries=0` — 20 passed, 0 failed (26.9 s). Again with the default config: 20 passed, 0 flaky.
+
+MCP walkthrough (`playwright-headless`, curl-fed fixtures, `/api/clear` between scenarios):
+
+- E2E-10: pass — 8 nodes at the expected kinds and columns (shop-browser c0r0; shop-web, shop-api, shop-worker c1r0–r2; redis, openai, postgresql, kafka c2r0–r3), 8 edges, 19 rows, routes for a03/b06/b07/a06 as specified, `particlesSpawned + particlesMerged` 16, `pulsesSpawned` 3. Screenshot reviewed: columns, arrows, red failing edges and kind colours read clearly.
+- E2E-11: pass — one row `front → back`, nodes front/back, edge `front>back`, 1 particle; `pair-again` added a second `front → back` row, still 2 nodes.
+- E2E-12: pass — server then client 100 ms later gave one row and 2 nodes; `orphan` drew `Outside → orphan`.
+- E2E-13: pass — `api.stripe.com` external in column 2; `orders.internal:9000` appeared, then after the late server span it was gone, `orders-svc` (service) and `front>orders-svc` existed, and the row read `front → orders-svc`.
+- E2E-14: pass — Outside (outside, c0), solo-api (c1), edge `Outside>solo-api`, route `Outside → solo-api`.
+- E2E-15: pass — front and back kept column, row and bounding box (394,93 and 394,177, 60×67) after the demo added 8 nodes; `window.__marker` still 1.
+- E2E-16: pass — sampled every 100 ms: `shop-api>openai` and `openai` red from 36 ms before the demo process exited, last red at +1,860 ms, both `false` at +3,567 ms; 3 error rows reading `Error`, 16 ok; legend http, db, llm, agent, tool, queue.
+- E2E-17: pass — `pulsesSpawned` 3, a06 is `agent` with route `shop-api`, a09/a11 `tool`, no edge from a node to itself.
+- E2E-18: pass — sampled every 25 ms: the 800 ms span's particle was in flight for 792 ms, the 5 ms span's for 302 ms (clamped up), the 10 s span's for 1,999 ms (clamped down).
+- E2E-19: pass — after 600 entries: `maxActiveParticles` 150, spawned 150 + merged 450 = 600.
+
+Surprises:
+
+- My first MCP attempt at E2E-16 sampled for 9 s and saw nothing: the gap between two tool calls was longer than the sampling window. Re-run with a 40 s window; not a product issue.
+- A screenshot taken right after the demo showed node badges at 0: counts arrive in a `counts` event debounced by 50 ms. The stream showed the right values (shop-api 6, postgresql 4, …) a moment later.

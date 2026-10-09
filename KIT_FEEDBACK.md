@@ -30,5 +30,8 @@ This file is feedback on the kit itself (the PRD, the tests, CLAUDE.md and the k
 - stage 0 [good] The data-testid and data-attribute contract plus `window.__livemap.stats()` meant every spec could be written before any page existed, with no guessing about selectors.
 - stage 1 [good] The demo table in E2E_TESTS.md 1.5 with exact ids, offsets, durations and totals made the scenario a direct transcription, and its totals line doubled as a unit test.
 - stage 1 [spec-gap] E2E-07 asks to "collect every row" after the demo but gives no point at which rows are complete (client spans to unknown hosts wait up to 300 ms) → the spec waits 1 s after the demo exits before collecting.
+- stage 2 [good] Reading particle counts through `window.__livemap.stats()` instead of pixels made M4 and M6 testable to the millisecond (E2E-18 measured 792 / 302 / 1,999 ms travel).
+- stage 2 [spec-gap] M6 says to merge "spans on the same edge within 100 ms" but not what to do at the cap when no particle shares the edge → the oldest particle ends early; recorded in DECISIONS.md.
+- stage 2 [env] Driving the MCP browser and a shell in turns adds seconds between steps, so time-based checks (E2E-16, E2E-18) had to be sampled inside the page with a timer and read back afterwards.
 - stage 0 [env] On Windows, `LIVEMAP_BIN` pointing at `node_modules/.bin/livemap` is a `.cmd` shim that Node cannot spawn without a shell, and a shell would eat SIGINT → the helper runs the installed package's `bin/livemap.mjs` with Node directly.
 
