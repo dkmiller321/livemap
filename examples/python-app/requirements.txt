@@ -1,0 +1,10 @@
+fastapi>=0.115
+uvicorn>=0.30
+# openai 3.x moved to httpx2; opentelemetry-instrumentation-openai-v2 2.4b0 still imports httpx
+# and skips itself without it. Stay on the 1.x/2.x line until the instrumentation catches up.
+openai>=1.40,<3
+opentelemetry-distro
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-openai-v2
+# 1.2b0 renamed opentelemetry.util.genai.instruments, which openai-v2 2.4b0 still imports.
+opentelemetry-util-genai<1.2

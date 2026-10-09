@@ -86,3 +86,28 @@ MCP walkthrough (`playwright-headless`, demo played with `npm run demo:once`):
 - E2E-23: pass — with a13 open, `/api/clear` closed the panel, emptied rows and nodes, showed the empty state, `/healthz` spans 0 and zeroed the particle and pulse counters; after a reload and a new demo, a13 again showed gpt-4o-mini. Screenshot of the panel reviewed.
 
 Surprises: none.
+
+## Stage 4 — Hookups (2026-10-09)
+
+Commands:
+
+- `npm run examples:setup` — Node example installed (auto-instrumentations-node 0.81.0, openai 5.23.2, express 5.3.0); Python venv on Python 3.13.5 (found as `python`; `python3` is 3.8), FastAPI 0.143, uvicorn 0.54, openai 2.54 (after pinning), openai-v2 2.4b0, util-genai 1.1b0.
+- First manual run of `/order/1042` showed only HTTP rows and an external node `127.0.0.1:4599` — no SQLite span and no LLM span. Three causes found and fixed (details in DECISIONS.md): openai 3.x / httpx2, util-genai 1.2b0 rename, and `Connection.execute` not traced. After the fixes the same request gave exactly the 5 nodes and 4 edges of E2E-25.
+- `npm run typecheck` — clean. `npm test` — 87 passed, 0 failed.
+- `npx playwright test -g "@stage0|…|@stage4" --retries=0` — 28 passed, 0 failed (36.3 s), with Playwright starting Livemap, the mock LLM and both examples. All five ports were free afterwards.
+- `npx playwright test -g "@stage4" --retries=0 --repeat-each=5` — 20 passed, 0 failed (cross-process pairing held every time).
+- After the waterfall layout tweak below: stages 0–4 with the default config — 28 passed.
+
+MCP walkthrough (`playwright-headless`; Livemap from `node bin/livemap.mjs`, examples from `npm run examples:start`):
+
+- E2E-24: pass — no `opentelemetry` in `examples/node-app/src` or `examples/python-app/app`; README has the four lines; `/hello` returned `{"reply":"Hello from the mock model."}`; nodes Outside, node-example (service), openai (llm), none containing 4599; rows `GET /hello` Outside → node-example and `chat mock-model` node-example → openai; detail: mock-model, 12 / 6, user "Please say hello.", response "Hello from the mock model." (content arrived as two log records).
+- E2E-25: pass — `/order/1042` returned the expected JSON; nodes python-example, sqlite (db), openai (llm), node-example, Outside; edges `python-example>sqlite`, `python-example>openai`, `node-example>python-example`, `Outside>node-example`; one `node-example → python-example` row; SQLite row: `SELECT id, status FROM orders WHERE id = ?`; LLM row: mock-model, 18 / 5, user "Give the order status for order 1042 in one sentence.", response "Order 1042 has shipped."; waterfall of 12 rows from `d0 node-example GET /order/:id` through `d5 python-example GET /orders/{order_id}` to `d6 SELECT` and `d6 chat mock-model` (its HTTP child `d7 POST` only in the waterfall).
+- E2E-26: pass — `/boom` 502 `{"error":"llm_failed"}`; rows `GET /boom` and `chat mock-model` both `error`.
+- E2E-27: pass — `llm-bare`: gpt-x, 7, `Content not captured`; logs 200, metrics 200; reopened: user "ping from logs", response "pong from logs", no-content hidden; spans still 1.
+
+Surprises:
+
+- `opentelemetry-instrument` detaches on Windows (os.execl); see DECISIONS.md.
+- Node start-up took ~10 s until the cloud resource detectors were turned off (now 1.3 s).
+- Closing the detail panel left its waterfall rows in the DOM (hidden), which made a `[data-span-id=…]` selector ambiguous in the walkthrough. The panel now empties them on close.
+- In the waterfall, the duration label overlapped full-width bars; it now has its own column.

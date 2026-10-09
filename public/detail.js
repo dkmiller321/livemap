@@ -217,8 +217,8 @@ export function createDetail(panel, hooks) {
         const dur = document.createElement('span');
         dur.className = 'wf-duration';
         dur.textContent = formatDuration(t.durationMs);
-        lane.append(bar, dur);
-        el.append(label, lane);
+        lane.append(bar);
+        el.append(label, lane, dur);
         const pick = () => load(t.spanId);
         el.addEventListener('click', pick);
         el.addEventListener('keydown', (e) => {
@@ -255,6 +255,8 @@ export function createDetail(panel, hooks) {
     span = null;
     trace = [];
     traceId = '';
+    q('waterfall').replaceChildren();
+    q('detail-attributes').replaceChildren();
     hooks.highlight('');
     hooks.selected('');
     if (restoreFocus && returnFocus && returnFocus.isConnected) returnFocus.focus();

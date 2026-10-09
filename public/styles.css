@@ -603,7 +603,7 @@ pre {
 
 .wf-row {
   display: grid;
-  grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 44%) minmax(0, 1fr) 52px;
   align-items: center;
   gap: 8px;
   padding: 4px 6px;
@@ -663,9 +663,7 @@ pre {
 }
 
 .wf-duration {
-  position: absolute;
-  right: 0;
-  top: 0;
+  text-align: right;
   font-size: 10.5px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
