@@ -185,6 +185,8 @@ Surprises:
    - Processes: `--open` spawns the OS opener (`cmd /c start`, `open` or `xdg-open`) with the page URL; nothing else is spawned.
    - The page API refuses requests whose `Host` is not `127.0.0.1:<port>` or `localhost:<port>` (DNS-rebinding guard).
 
+8. **KitForge report: not sent.** The POST to `http://127.0.0.1:4317/api/runs/report` was blocked by Claude Code's permission check before it ran; it is left for the user to approve or send.
+
 ### Totals
 
 - Unit tests (`npm test`): 90 passed, 0 failed. Typecheck clean.
