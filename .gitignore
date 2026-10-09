@@ -3,6 +3,7 @@ node_modules/
 test-results/
 playwright-report/
 fixtures-out/
+demo-out/
 *.tgz
 examples/**/node_modules/
 examples/**/.venv/
