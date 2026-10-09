@@ -25,10 +25,12 @@ export function initText(dir, otlpPort) {
       '2. Start your app with these environment variables and one extra flag:',
       env,
       '  OTEL_SERVICE_NAME=<your app name>',
-      '  OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true',
       '  node --require @opentelemetry/auto-instrumentations-node/register <your entry file>',
       '',
-      'See docs/hookups/node.md in the livemap package for LLM prompt capture.',
+      '3. Optional, to see LLM prompts and responses (the OpenAI instrumentation sends them as log events):',
+      '  OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true',
+      '  OTEL_LOGS_EXPORTER=otlp',
+      '  OTEL_BLRP_SCHEDULE_DELAY=200',
     );
   }
   if (isPython) {
