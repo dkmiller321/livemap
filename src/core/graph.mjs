@@ -12,6 +12,7 @@ export const WINDOW_MS = 60_000;
  * @property {number} row
  * @property {number} firstSeen
  * @property {number} lastSeen
+ * @property {number} uses drawn calls and pulses that touched it, ever
  */
 
 /**
@@ -21,6 +22,7 @@ export const WINDOW_MS = 60_000;
  * @property {string} target
  * @property {number} firstSeen
  * @property {number} lastSeen
+ * @property {number} uses drawn calls along it, ever
  */
 
 /**
@@ -65,7 +67,7 @@ export function ensureNode(g, ref, now) {
   if (g.nodes.has(ref.id)) return null;
   const column = columnOf(ref.kind);
   /** @type {Node} */
-  const node = { id: ref.id, name: ref.id, kind: ref.kind, column, row: g.nextRow[column]++, firstSeen: now, lastSeen: now };
+  const node = { id: ref.id, name: ref.id, kind: ref.kind, column, row: g.nextRow[column]++, firstSeen: now, lastSeen: now, uses: 0 };
   g.nodes.set(node.id, node);
   return node;
 }
@@ -81,7 +83,7 @@ export function ensureEdge(g, source, target, now) {
   const id = edgeId(source, target);
   if (g.edges.has(id)) return null;
   /** @type {Edge} */
-  const edge = { id, source, target, firstSeen: now, lastSeen: now };
+  const edge = { id, source, target, firstSeen: now, lastSeen: now, uses: 0 };
   g.edges.set(id, edge);
   return edge;
 }
@@ -96,18 +98,62 @@ export function ensureEdge(g, source, target, now) {
  */
 export function recordCall(g, source, target, durationMs, now) {
   const src = g.nodes.get(source);
-  if (src) src.lastSeen = now;
+  if (src) {
+    src.lastSeen = now;
+    src.uses++;
+  }
   if (!target) {
     push(g.nodeCalls, source, now);
     return;
   }
   const dst = g.nodes.get(target);
-  if (dst) dst.lastSeen = now;
+  if (dst) {
+    dst.lastSeen = now;
+    dst.uses++;
+  }
   push(g.nodeCalls, target, now);
   const id = edgeId(source, target);
   const edge = g.edges.get(id);
-  if (edge) edge.lastSeen = now;
+  if (edge) {
+    edge.lastSeen = now;
+    edge.uses++;
+  }
   push(g.edgeCalls, id, { t: now, d: durationMs });
+}
+
+/**
+ * Takes back one call recorded at time `t`: the inverse of `recordCall`. An edge no call uses any
+ * more is removed, and so is a node left with no calls and no edges. Mutates `g`.
+ * @param {Graph} g
+ * @param {string} source
+ * @param {string} target
+ * @param {number} durationMs
+ * @param {number} t when the call was recorded
+ * @returns {{removedEdges: string[], removedNodes: string[]}}
+ */
+export function unrecordCall(g, source, target, durationMs, t) {
+  /** @type {string[]} */
+  const removedEdges = [];
+  /** @type {string[]} */
+  const removedNodes = [];
+  const id = edgeId(source, target);
+  removeOne(g.nodeCalls, target, (x) => x === t);
+  removeOne(g.edgeCalls, id, (x) => x.t === t && x.d === durationMs);
+  const edge = g.edges.get(id);
+  if (edge && --edge.uses <= 0) {
+    g.edges.delete(id);
+    g.edgeCalls.delete(id);
+    removedEdges.push(id);
+  }
+  for (const nodeId of [source, target]) {
+    const node = g.nodes.get(nodeId);
+    if (!node || --node.uses > 0) continue;
+    if ([...g.edges.values()].some((e) => e.source === nodeId || e.target === nodeId)) continue;
+    g.nodes.delete(nodeId);
+    g.nodeCalls.delete(nodeId);
+    removedNodes.push(nodeId);
+  }
+  return { removedEdges, removedNodes };
 }
 
 /**
@@ -137,6 +183,7 @@ export function mergeNode(g, fromId, to, now) {
     const created = ensureEdge(g, source, target, edge.firstSeen);
     const merged = /** @type {Edge} */ (g.edges.get(edgeId(source, target)));
     merged.lastSeen = Math.max(merged.lastSeen, edge.lastSeen);
+    merged.uses += edge.uses;
     if (created) createdEdges.push(created);
     const into = g.edgeCalls.get(merged.id) || [];
     g.edgeCalls.set(merged.id, [...into, ...calls].sort((a, b) => a.t - b.t));
@@ -147,7 +194,10 @@ export function mergeNode(g, fromId, to, now) {
   g.nodeCalls.set(to.id, [...intoCalls, ...fromCalls].sort((a, b) => a - b));
   const old = g.nodes.get(fromId);
   const node = /** @type {Node} */ (g.nodes.get(to.id));
-  if (old) node.lastSeen = Math.max(node.lastSeen, old.lastSeen);
+  if (old) {
+    node.lastSeen = Math.max(node.lastSeen, old.lastSeen);
+    node.uses += old.uses;
+  }
   g.nodes.delete(fromId);
   return { createdNode, createdEdges, removedEdges };
 }
@@ -196,6 +246,19 @@ function push(map, key, value) {
   let list = map.get(key);
   if (!list) map.set(key, (list = []));
   list.push(value);
+}
+
+/**
+ * @template T
+ * @param {Map<string, T[]>} map
+ * @param {string} key
+ * @param {(v: T) => boolean} match
+ */
+function removeOne(map, key, match) {
+  const list = map.get(key);
+  if (!list) return;
+  const i = list.findIndex(match);
+  if (i !== -1) list.splice(i, 1);
 }
 
 /**

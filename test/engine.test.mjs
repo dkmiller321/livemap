@@ -97,6 +97,34 @@ test('client to an unknown address becomes external after 300 ms; a late server 
   assert.equal(st.feed[0].target, 'orders-svc');
 });
 
+test('a client that arrives after its server span was drawn from Outside takes the call back', () => {
+  const st = createState({ maxSpans: 100 });
+  ingestSpans(st, [SERVER], 0);
+  const outside = spanRows(expire(st, 300));
+  assert.deepEqual(outside.map((r) => [r.spanId, r.source, r.target]), [['s1', 'Outside', 'back']]);
+
+  const events = ingestSpans(st, [CLIENT], 500);
+  assert.deepEqual(types(events), ['node', 'edge', 'span', 'span-removed', 'edge-removed', 'node-removed', 'trace']);
+  assert.deepEqual(/** @type {any} */ (events[3].data), { spanId: 's1' });
+  assert.deepEqual(/** @type {any} */ (events[4].data), { id: 'Outside>back' });
+  assert.deepEqual(/** @type {any} */ (events[5].data), { id: 'Outside', into: '' });
+  assert.equal(st.graph.nodes.get('back')?.row, 0, 'the callee keeps its slot');
+  assert.deepEqual(st.feed.map((r) => [r.spanId, r.source, r.target]), [['c1', 'front', 'back']]);
+  assert.deepEqual([...st.graph.nodes.keys()].sort(), ['back', 'front']);
+  assert.deepEqual([...st.graph.edges.keys()], ['front>back']);
+});
+
+test('taking a call back keeps an edge and a node that other calls still use', () => {
+  const st = createState({ maxSpans: 100 });
+  const entry = raw({ spanId: 'e1', service: 'back', otelKind: 'SERVER', attributes: { 'http.request.method': 'GET' } });
+  ingestSpans(st, [entry, SERVER], 0);
+  expire(st, 300);
+  const events = ingestSpans(st, [CLIENT], 500);
+  assert.deepEqual(types(events).filter((t) => t.endsWith('-removed')), ['span-removed']);
+  assert.ok(st.graph.edges.has('Outside>back'));
+  assert.deepEqual(st.feed.map((r) => r.spanId), ['e1', 'c1']);
+});
+
 test('the LLM SDK HTTP call under an LLM span is hidden, whichever arrives first', () => {
   const llm = raw({ spanId: 'm1', service: 'api', otelKind: 'CLIENT', attributes: { 'gen_ai.operation.name': 'chat', 'gen_ai.provider.name': 'openai' } });
   const http = raw({ spanId: 'h1', parentSpanId: 'm1', service: 'api', otelKind: 'CLIENT', attributes: { 'http.request.method': 'POST', 'server.address': '127.0.0.1', 'server.port': 4599 } });

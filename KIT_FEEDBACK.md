@@ -41,5 +41,9 @@ This file is feedback on the kit itself (the PRD, the tests, CLAUDE.md and the k
 - stage 4 [spec-gap] The sqlite3 instrumentation ignores `Connection.execute()`, the most common way to query SQLite in a small app; the kit's E2E-25 needs a `db` row → the example uses a cursor, and the limitation is in the Python recipe.
 - stage 4 [good] CLAUDE.md's warning that a node containing `4599` means a broken parent link pointed straight at the problem when the first run showed `127.0.0.1:4599` (the LLM span was missing, so its HTTP child had no LLM parent).
 - stage 4 [env] Node's default resource detectors probe cloud metadata and added ~10 s to the example's start-up → `OTEL_NODE_RESOURCE_DETECTORS` limited to local detectors.
+- stage 5 [spec-gap] The pairing rules say what happens when a server span's 300 ms wait runs out, but not when its client arrives afterwards. With the browser hookup that is the normal case (fetch spans end ~300 ms late), and E2E-28 alone would not have caught the duplicate `Outside →` row → added a correction that takes the server's row back, mirroring the PRD's late-pairing rule.
+- stage 5 [dep] `@opentelemetry/sdk-trace-web` 2.x replaces, rather than merges, the default resource when `resource` is passed, which silently drops `telemetry.sdk.language=webjs` that K9 relies on → merged with `defaultResource()`.
+- stage 5 [good] E2E-38's 60-second load spec with fps, particle cap, row cap and idle checks in one test gave real confidence in the throughput target; it passed first time.
+- stage 5 [spec-gap] E2E-41 says "focus the first feed-row with the keyboard" without saying from where; the spec tabs from the top of the page, the MCP walk tabbed from the name filter.
 - stage 0 [env] On Windows, `LIVEMAP_BIN` pointing at `node_modules/.bin/livemap` is a `.cmd` shim that Node cannot spawn without a shell, and a shell would eat SIGINT → the helper runs the installed package's `bin/livemap.mjs` with Node directly.
 

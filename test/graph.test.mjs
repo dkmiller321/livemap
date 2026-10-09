@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { counts, createGraph, ensureEdge, ensureNode, median, mergeNode, recordCall } from '../src/core/graph.mjs';
+import { counts, createGraph, ensureEdge, ensureNode, median, mergeNode, recordCall, unrecordCall } from '../src/core/graph.mjs';
 
 test('nodes take the next row of their column, in order of first appearance', () => {
   const g = createGraph();
@@ -62,6 +62,21 @@ test('merging a node moves its edges and counts', () => {
   const c = counts(g, 100);
   assert.equal(c.nodes['orders-svc'].count, 1);
   assert.deepEqual(c.edges['front>orders-svc'], { count: 1, medianMs: 50 });
+});
+
+test('taking a call back removes edges and nodes only when nothing else uses them', () => {
+  const g = createGraph();
+  for (const [id, kind] of /** @type {const} */ ([['Outside', 'outside'], ['api', 'service'], ['web', 'service']])) ensureNode(g, { id, kind }, 0);
+  ensureEdge(g, 'Outside', 'api', 0);
+  ensureEdge(g, 'Outside', 'web', 0);
+  recordCall(g, 'Outside', 'api', 10, 100);
+  recordCall(g, 'Outside', 'web', 20, 200);
+  let res = unrecordCall(g, 'Outside', 'web', 20, 200);
+  assert.deepEqual(res, { removedEdges: ['Outside>web'], removedNodes: ['web'] });
+  assert.ok(g.nodes.has('Outside'));
+  res = unrecordCall(g, 'Outside', 'api', 10, 100);
+  assert.deepEqual(res, { removedEdges: ['Outside>api'], removedNodes: ['Outside', 'api'] });
+  assert.equal(g.nodes.size + g.edges.size, 0);
 });
 
 test('median', () => {

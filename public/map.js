@@ -205,6 +205,11 @@ export function createMap(container, legendHost, hooks) {
       placeEdge(entry);
     },
     /** @param {string} id */
+    removeEdge(id) {
+      edges.get(id)?.el.remove();
+      edges.delete(id);
+    },
+    /** @param {string} id */
     removeNode(id) {
       nodes.get(id)?.el.remove();
       nodes.delete(id);

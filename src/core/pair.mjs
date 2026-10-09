@@ -30,7 +30,7 @@ export const OUTSIDE = 'Outside';
 /**
  * @typedef {{type: 'none'}
  *   | {type: 'pulse', node: NodeRef}
- *   | {type: 'draw', source: NodeRef, target: NodeRef, learn?: {key: string, service: string}}
+ *   | {type: 'draw', source: NodeRef, target: NodeRef, learn?: {key: string, service: string}, pairedServer?: string}
  *   | {type: 'hidden', pairedClient?: string}
  *   | {type: 'wait'}} Decision
  */
@@ -121,8 +121,8 @@ function decideClient(span, ctx, final) {
   if (server) {
     const target = serviceRef(server);
     return key
-      ? { type: 'draw', source: self, target, learn: { key, service: target.id } }
-      : { type: 'draw', source: self, target };
+      ? { type: 'draw', source: self, target, learn: { key, service: target.id }, pairedServer: server.spanId }
+      : { type: 'draw', source: self, target, pairedServer: server.spanId };
   }
   const known = key ? ctx.knownAddress(key) : undefined;
   if (known) return { type: 'draw', source: self, target: { id: known, kind: 'service' } };

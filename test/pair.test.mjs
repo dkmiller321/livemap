@@ -66,6 +66,7 @@ test('pairing: client with its server span draws client -> server service and le
     source: { id: 'front', kind: 'service' },
     target: { id: 'back', kind: 'service' },
     learn: { key: 'back.internal:8080', service: 'back' },
+    pairedServer: 's',
   });
 });
 

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Livemap browser example</title>
+    <link rel="icon" href="data:," />
+    <style>
+      body {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        color: #0a0a0a;
+      }
+      main {
+        display: grid;
+        gap: 14px;
+        justify-items: center;
+      }
+      button {
+        height: 40px;
+        padding: 0 22px;
+        border: none;
+        border-radius: 999px;
+        background: #0a0a0a;
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+      }
+      p {
+        min-height: 1.4em;
+        margin: 0;
+        color: #525252;
+      }
+    </style>
+    <script src="/otel.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Ask the model</h1>
+      <button type="button" data-testid="ask-button">Ask</button>
+      <p data-testid="ask-result" aria-live="polite"></p>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

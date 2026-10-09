@@ -111,3 +111,35 @@ Surprises:
 - Node start-up took ~10 s until the cloud resource detectors were turned off (now 1.3 s).
 - Closing the detail panel left its waterfall rows in the DOM (hidden), which made a `[data-span-id=…]` selector ambiguous in the walkthrough. The panel now empties them on close.
 - In the waterfall, the duration label overlapped full-width bars; it now has its own column.
+
+## Stage 5 — Browser and polish (2026-10-09)
+
+Commands:
+
+- `examples/browser-page`: `npm install`, `npm run build` (esbuild, `dist/otel.js` 110 KB).
+- `npm run typecheck` — clean.
+- `npm test` — 90 passed, 0 failed (adds graph `unrecordCall`, engine: client after a server already drawn from Outside, and a taken-back call that keeps a shared edge).
+- `npx playwright test --retries=0` (all 42) — 41 passed, 1 failed: E2E-34 timed out because the Hide content switch's track covered its invisible checkbox, so the click never reached it. Fixed in CSS; E2E-34 alone then passed.
+- `npx playwright test` (all 42, default config) — 42 passed, 0 flaky (1.8 min), including E2E-38's 60-second load run.
+
+MCP walkthrough (`playwright-headless`; Livemap, mock LLM and both examples running):
+
+- E2E-28: pass — in a second tab, Ask showed "Hello from the mock model."; `browser-example` is `browser` in column 0, edge `browser-example>node-example`, one row with that route, the earlier `GET /hello` from Outside was taken back; the LLM row's waterfall starts `d0 browser-example GET`, then `d1 node-example GET /hello`. Preflight from `http://127.0.0.1:4501` got 204 with the origin echoed; from `https://evil.example` 204 with no `Access-Control-Allow-Origin`. (First attempt found the node as `service` and the call drawn twice; both fixed, see DECISIONS.md.)
+- E2E-29: pass — both rows `llm`; nodes anthropic and openai are `llm`; oi-svc: claude-x, 11 / 4, "hi from openinference", "hello back"; ollm-svc: gpt-y, 9 / 2, "hi from openllmetry", "hey there".
+- E2E-30: pass — counts shop-browser 0, shop-web 3, shop-api 6, redis 1, openai 3, postgresql 4, kafka 1, shop-worker 1; labels `3 · 38 ms` and `3 · 880 ms`; no node idle.
+- E2E-31: pass — LLM filter 3 rows; errors only c05, c03, c01; `ORDERS` a10, b01, b03, b05, b06, b07, b08; node postgresql: chip `postgresql`, rows a10, a12, b05, b08; chip clear: 19; edge `kafka>shop-worker`: chip `kafka → shop-worker`, row b07.
+- E2E-32: pass — paused (`Resume`), demo played, after 1 s 0 rows, 0 nodes, spans 27; Resume (`Pause`): 19 rows, 8 nodes; Clear button: 0 rows, empty state, spans 0.
+- E2E-33: pass — 60 rows, scrolled to 300; three fresh entries: pill `3 new`, first row still `…3b`; pill click: scrollTop 0, pill hidden, first row `…3e` (index 62).
+- E2E-34: pass — with Hide content on, all five messages, the response and `gen_ai.input.messages` read `[hidden]` (token counts still shown); b05 statement `[hidden]`; c01 target and `url.full` `http://localhost:3000/api/recommendations?[hidden]`; after a reload the switch was still on and the response hidden; off again showed "Order 1042 has shipped. …".
+- E2E-35: pass — c04 via c03's waterfall: `UpstreamTimeout`, `recommendation model timed out`, stack with `at recommend (`; c05: `timeout`.
+- E2E-36: pass — waterfall 2 rows, the late span posted, 3 rows with the panel still open and `…02` still selected.
+- E2E-37: pass — with reduced motion emulated: row shown, `Outside>solo-api` flashed for ~330 ms (sampled every 20 ms), `particlesSpawned` 0.
+- E2E-38: spec only (60 s) — 10-second look at `demo --rate 200`: 1,985 spans in 10 s, fps 57 at every sample, at most 94 particles in flight, 500 rows, status Live throughout. Screenshot reviewed.
+- E2E-39: pass — Livemap on 4490/4491; after a kill the page read `Reconnecting…` within 116 ms; after a restart `Live` within 1,075 ms; `window.__marker` still 1.
+- E2E-40: spec only (process spawning).
+- E2E-41: pass — from the name filter, two Tabs reached the first feed row (c05); Enter opened the panel, Escape closed it and focus returned to c05; a13 reads `LLM`, a06 `Agent`.
+
+Surprises:
+
+- The fetch instrumentation ends spans ~300 ms after the response (it waits for resource timing), so a browser call always arrived after its server span's wait. Handled by taking back the Outside row; see DECISIONS.md.
+- Playwright's `check()` on the Hide content switch waited out the 30 s test timeout without a clear error; the cause was an element covering the checkbox.

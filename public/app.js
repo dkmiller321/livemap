@@ -1,4 +1,5 @@
-// Page entry: the event stream, the read-only stats hook, and wiring between map, particles and feed.
+// Page entry: the event stream, the read-only stats hook, and wiring between map, particles,
+// feed, detail panel and the controls.
 import { createDetail } from './detail.js';
 import { createFeed } from './feed.js';
 import { createMap } from './map.js';
@@ -9,27 +10,36 @@ const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.que
 const statusEl = $('connection-status');
 const emptyEl = $('empty-state');
 const hookupEl = $('hookup-lines');
+const pauseButton = /** @type {HTMLButtonElement} */ ($('pause-button'));
+const hideToggle = /** @type {HTMLInputElement} */ ($('hide-content-toggle'));
+const kindFilter = /** @type {HTMLSelectElement} */ ($('filter-kind'));
+const errorsFilter = /** @type {HTMLInputElement} */ ($('filter-errors'));
+const textFilter = /** @type {HTMLInputElement} */ ($('filter-text'));
+const chip = $('filter-chip');
+const chipRow = /** @type {HTMLElement} */ (chip.parentElement);
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const HIDE_KEY = 'livemap.hideContent';
 
 let connected = false;
+let paused = false;
+/** @type {{type: string, data: any}[]} events held while paused */
+let held = [];
+/** @type {{node: string} | {edge: string, source: string, target: string} | null} */
+let scope = null;
 
 const map = createMap($('map'), $('legend'), {
-  onNode: () => {},
-  onEdge: () => {},
+  onNode: (id) => setScope({ node: id }),
+  onEdge: (id) => {
+    const [source, target] = id.split('>');
+    setScope({ edge: id, source, target });
+  },
 });
 const particles = createParticles(map.canvas, { area: () => map.area });
-const feed = createFeed($('feed'), { onOpen: (row, el) => detail.open(row.spanId, el) });
+const feed = createFeed($('feed'), $('new-rows-pill'), { onOpen: (row, el) => detail.open(row.spanId, el) });
 const detail = createDetail($('detail-panel'), {
   highlight: (edgeId) => map.highlight(edgeId),
   selected: (spanId) => feed.select(spanId),
-  hidden: () => false,
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && detail.isOpen) {
-    e.preventDefault();
-    detail.close();
-  }
+  hidden: () => hideToggle.checked,
 });
 
 Object.defineProperty(window, '__livemap', {
@@ -45,6 +55,67 @@ Object.defineProperty(window, '__livemap', {
   writable: false,
   configurable: false,
 });
+
+// ---- Controls ----
+
+hideToggle.checked = localStorage.getItem(HIDE_KEY) === 'true';
+hideToggle.addEventListener('change', () => {
+  localStorage.setItem(HIDE_KEY, String(hideToggle.checked));
+  detail.rerender();
+});
+
+pauseButton.addEventListener('click', () => {
+  paused = !paused;
+  pauseButton.textContent = paused ? 'Resume' : 'Pause';
+  pauseButton.setAttribute('aria-pressed', String(paused));
+  particles.freeze(paused);
+  if (!paused) {
+    const backlog = held;
+    held = [];
+    for (const e of backlog) handlers[e.type](e.data);
+  }
+});
+
+$('clear-button').addEventListener('click', () => {
+  fetch('/api/clear', { method: 'POST' });
+});
+
+/** @param {typeof scope} next */
+function setScope(next) {
+  scope = next;
+  chipRow.hidden = !scope;
+  chip.textContent = !scope ? '' : 'node' in scope ? scope.node : `${scope.source} → ${scope.target}`;
+  applyFilter();
+}
+
+$('filter-chip-clear').addEventListener('click', () => setScope(null));
+kindFilter.addEventListener('change', applyFilter);
+errorsFilter.addEventListener('change', applyFilter);
+textFilter.addEventListener('input', applyFilter);
+
+function applyFilter() {
+  const kind = kindFilter.value;
+  const errorsOnly = errorsFilter.checked;
+  const text = textFilter.value.trim().toLowerCase();
+  const s = scope;
+  feed.setFilter((row) => {
+    if (kind !== 'all' && row.kind !== kind) return false;
+    if (errorsOnly && row.status !== 'error') return false;
+    if (text && !row.name.toLowerCase().includes(text)) return false;
+    if (s && 'node' in s && row.source !== s.node && row.target !== s.node) return false;
+    if (s && 'edge' in s && (row.pulse || `${row.source}>${row.target}` !== s.edge)) return false;
+    return true;
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && detail.isOpen) {
+    e.preventDefault();
+    detail.close();
+  }
+});
+
+// ---- Empty state ----
 
 /** @param {number} otlpPort */
 function hookupLines(otlpPort) {
@@ -63,16 +134,18 @@ fetch('/config.json')
     hookupEl.textContent = hookupLines(cfg.otlpPort);
   });
 
+/** @param {boolean} empty */
+function setEmpty(empty) {
+  emptyEl.hidden = !empty;
+}
+
+// ---- Event stream ----
+
 /** @param {boolean} live */
 function setConnected(live) {
   connected = live;
   statusEl.textContent = live ? 'Live' : 'Reconnecting…';
   statusEl.dataset.live = String(live);
-}
-
-/** @param {boolean} empty */
-function setEmpty(empty) {
-  emptyEl.hidden = !empty;
 }
 
 function resetView() {
@@ -108,6 +181,7 @@ function animate(row) {
 /** @type {Record<string, (data: any) => void>} */
 const handlers = {
   snapshot(data) {
+    held = [];
     resetView();
     for (const n of data.nodes) map.addNode(n);
     for (const e of data.edges) map.addEdge(e);
@@ -126,11 +200,15 @@ const handlers = {
   'node-removed'(d) {
     map.removeNode(d.id);
   },
+  'edge-removed'(d) {
+    map.removeEdge(d.id);
+  },
+  'span-removed'(d) {
+    feed.remove(d.spanId);
+  },
   span(row) {
-    const isNew = !feed.element(row.spanId);
-    feed.upsert(row);
     setEmpty(false);
-    if (isNew) animate(row);
+    if (feed.upsert(row)) animate(row);
   },
   counts(c) {
     map.setCounts(c, Date.now());
@@ -140,16 +218,30 @@ const handlers = {
     detail.traceChanged(d.traceId);
   },
   clear() {
+    held = [];
     detail.close(false);
     resetView();
     particles.reset();
   },
 };
 
+/**
+ * While paused, everything but `snapshot` and `clear` waits; Resume replays it in order.
+ * @param {string} type
+ * @param {any} data
+ */
+function dispatch(type, data) {
+  if (paused && type !== 'snapshot' && type !== 'clear') {
+    held.push({ type, data });
+    return;
+  }
+  handlers[type](data);
+}
+
 function connect() {
   const source = new EventSource('/events');
-  for (const [type, handle] of Object.entries(handlers)) {
-    source.addEventListener(type, (e) => handle(JSON.parse(/** @type {MessageEvent} */ (e).data)));
+  for (const type of Object.keys(handlers)) {
+    source.addEventListener(type, (e) => dispatch(type, JSON.parse(/** @type {MessageEvent} */ (e).data)));
   }
   source.addEventListener('error', () => {
     setConnected(false);
@@ -162,4 +254,5 @@ function connect() {
 
 window.addEventListener('resize', () => map.layout());
 setInterval(() => map.markIdle(Date.now()), 1000);
+applyFilter();
 connect();

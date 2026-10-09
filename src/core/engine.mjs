@@ -4,7 +4,7 @@
 import { addSpan, childrenOf, clearBuffer, createBuffer, spansInTrace } from './buffer.mjs';
 import { addressKey, addressOf, classifyKind, externalNodeId } from './classify.mjs';
 import { dbInfo, errorInfo, httpInfo } from './detail.mjs';
-import { clearGraph, counts, createGraph, edgeId, ensureEdge, ensureNode, mergeNode, recordCall } from './graph.mjs';
+import { clearGraph, counts, createGraph, edgeId, ensureEdge, ensureNode, mergeNode, recordCall, unrecordCall } from './graph.mjs';
 import { normalizeLlm } from './llm-content.mjs';
 import { PAIR_WAIT_MS, decide } from './pair.mjs';
 
@@ -19,6 +19,7 @@ const PENDING_LOGS_MAX = 2000;
  *   target: string,
  *   targetKind: string,
  *   pulse: boolean,
+ *   drawnAt: number,
  *   logs: import('../otlp/decode.mjs').LogEvent[],
  * }} Span
  */
@@ -42,6 +43,8 @@ const PENDING_LOGS_MAX = 2000;
  *   | {type: 'node', data: import('./graph.mjs').Node}
  *   | {type: 'edge', data: import('./graph.mjs').Edge}
  *   | {type: 'node-removed', data: {id: string, into: string}}
+ *   | {type: 'edge-removed', data: {id: string}}
+ *   | {type: 'span-removed', data: {spanId: string}}
  *   | {type: 'trace', data: {traceId: string}}
  *   | {type: 'clear', data: {}}} Event
  */
@@ -84,7 +87,7 @@ export function ingestSpans(state, rawSpans, now) {
   const added = [];
   for (const raw of rawSpans) {
     /** @type {Span} */
-    const span = { ...raw, kind: classifyKind(raw.attributes), state: 'new', source: '', target: '', targetKind: '', pulse: false, logs: [] };
+    const span = { ...raw, kind: classifyKind(raw.attributes), state: 'new', source: '', target: '', targetKind: '', pulse: false, drawnAt: 0, logs: [] };
     const res = addSpan(state.buffer, span);
     if (!res.added) continue;
     for (const old of res.evicted) state.pending.delete(old.spanId);
@@ -311,10 +314,15 @@ function resolve(state, span, now, final, events) {
     case 'pulse':
       draw(state, span, decision.node, null, now, events);
       return;
-    case 'draw':
+    case 'draw': {
       if (decision.learn) learn(state, decision.learn.key, decision.target, now, events);
       draw(state, span, decision.source, decision.target, now, events);
+      // A server span whose wait ran out was drawn from Outside before this client arrived:
+      // it is the same call, so take it back. (Drawn first, so the shared callee node stays put.)
+      const server = decision.pairedServer ? buffer.spans.get(decision.pairedServer) : undefined;
+      if (server && server.state === 'drawn') retract(state, server, events);
       return;
+    }
     case 'hidden': {
       settle(state, span, 'hidden');
       const client = decision.pairedClient ? buffer.spans.get(decision.pairedClient) : undefined;
@@ -395,11 +403,28 @@ function draw(state, span, source, target, now, events) {
   span.target = target ? target.id : '';
   span.targetKind = target ? target.kind : '';
   span.pulse = !target;
+  span.drawnAt = now;
   settle(state, span, 'drawn');
   const row = toRow(span);
   state.feed.push(row);
   if (state.feed.length > FEED_MAX) state.feed.splice(0, state.feed.length - FEED_MAX);
   events.push({ type: 'span', data: row });
+}
+
+/**
+ * Takes back a drawn call: its row goes, and so do an edge and a node nothing else uses.
+ * @param {State} state
+ * @param {Span} span
+ * @param {Event[]} events
+ */
+function retract(state, span, events) {
+  span.state = 'hidden';
+  const i = state.feed.findIndex((r) => r.spanId === span.spanId);
+  if (i !== -1) state.feed.splice(i, 1);
+  events.push({ type: 'span-removed', data: { spanId: span.spanId } });
+  const { removedEdges, removedNodes } = unrecordCall(state.graph, span.source, span.target, span.durationMs, span.drawnAt);
+  for (const id of removedEdges) events.push({ type: 'edge-removed', data: { id } });
+  for (const id of removedNodes) events.push({ type: 'node-removed', data: { id, into: '' } });
 }
 
 /**

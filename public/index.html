@@ -11,6 +11,15 @@
     <header class="bar">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Livemap</div>
       <span class="status" data-testid="connection-status" role="status" aria-live="polite">Reconnecting…</span>
+      <div class="bar-actions">
+        <label class="switch">
+          <input type="checkbox" data-testid="hide-content-toggle" />
+          <span class="switch-track" aria-hidden="true"></span>
+          Hide content
+        </label>
+        <button class="pill-button" type="button" data-testid="pause-button" aria-pressed="false">Pause</button>
+        <button class="pill-button" type="button" data-testid="clear-button">Clear</button>
+      </div>
     </header>
 
     <main class="layout">
@@ -90,7 +99,31 @@
       </section>
 
       <aside class="feed-wrap" aria-label="Feed">
-        <div class="feed" data-testid="feed" role="list"></div>
+        <div class="feed-tools">
+          <select class="pill-input" data-testid="filter-kind" aria-label="Show kind">
+            <option value="all">All kinds</option>
+            <option value="http">HTTP</option>
+            <option value="db">DB</option>
+            <option value="llm">LLM</option>
+            <option value="agent">Agent</option>
+            <option value="tool">Tool</option>
+            <option value="queue">Queue</option>
+          </select>
+          <input class="pill-input grow" type="search" data-testid="filter-text" placeholder="Filter by name" aria-label="Filter by name" />
+          <label class="check">
+            <input type="checkbox" data-testid="filter-errors" />
+            Errors only
+          </label>
+        </div>
+        <div class="chip-row" hidden>
+          <span class="chip-prefix">Showing</span>
+          <span class="chip" data-testid="filter-chip"></span>
+          <button class="chip-clear" type="button" data-testid="filter-chip-clear" aria-label="Show all calls">✕</button>
+        </div>
+        <div class="feed-body">
+          <button class="new-pill" type="button" data-testid="new-rows-pill" hidden></button>
+          <div class="feed" data-testid="feed"></div>
+        </div>
       </aside>
     </main>
 

@@ -1,0 +1,20 @@
+{
+  "name": "livemap-browser-example",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A page whose fetch calls join the same trace as the server spans they cause.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-zone": "^2.12.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.223.0",
+    "@opentelemetry/instrumentation": "^0.223.0",
+    "@opentelemetry/instrumentation-fetch": "^0.223.0",
+    "@opentelemetry/resources": "^2.12.0",
+    "@opentelemetry/sdk-trace-web": "^2.12.0",
+    "esbuild": "^0.28.2"
+  }
+}

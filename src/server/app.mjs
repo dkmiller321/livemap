@@ -49,7 +49,7 @@ export async function startLivemap(opts) {
   /** @param {import('../core/engine.mjs').Event[]} events */
   const publish = (events) => {
     broadcast(hub, events);
-    if (events.some((e) => e.type === 'span' || e.type === 'node-removed')) scheduleCounts();
+    if (events.some((e) => e.type === 'span' || e.type === 'span-removed' || e.type === 'node-removed')) scheduleCounts();
     schedulePairing();
   };
 
