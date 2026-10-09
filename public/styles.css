@@ -1,0 +1,164 @@
+:root {
+  --bg: #ffffff;
+  --panel: #fafafa;
+  --line: #e7e7e7;
+  --line-strong: #d4d4d4;
+  --text: #0a0a0a;
+  --muted: #6b6b6b;
+  --faint: #a3a3a3;
+  --primary: #0a0a0a;
+  --error: #dc2626;
+  --http: #2563eb;
+  --db: #059669;
+  --llm: #7c3aed;
+  --agent: #d97706;
+  --tool: #db2777;
+  --queue: #0891b2;
+  --radius: 14px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+code,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px #ececec;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f4f4f4;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.status[data-live='true'] {
+  color: var(--text);
+}
+
+.status[data-live='true']::before {
+  background: #16a34a;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  height: calc(100vh - 56px);
+}
+
+.map-wrap {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg);
+}
+
+.empty h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.empty p {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.hookup {
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  text-align: left;
+  user-select: all;
+}
+
+.feed-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.feed {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}

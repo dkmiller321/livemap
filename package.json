@@ -1,0 +1,50 @@
+{
+  "name": "livemap",
+  "version": "0.1.0",
+  "description": "See any running app as a live animated map of its calls, from OpenTelemetry spans.",
+  "type": "module",
+  "bin": {
+    "livemap": "bin/livemap.mjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "!src/otlp/proto/",
+    "public/",
+    "NOTICE.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node bin/livemap.mjs",
+    "demo": "node bin/livemap.mjs demo",
+    "demo:once": "node bin/livemap.mjs demo --once --target http://127.0.0.1:4318",
+    "test": "node --test \"test/*.test.mjs\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:e2e": "playwright test",
+    "examples:setup": "node scripts/examples.mjs setup",
+    "examples:start": "node scripts/examples.mjs start",
+    "example:node": "node scripts/examples.mjs node",
+    "example:python": "node scripts/examples.mjs python",
+    "fixtures:dump": "node scripts/fixtures-dump.mjs",
+    "proto:gen": "pbjs -t json -p src/otlp/proto src/otlp/proto/opentelemetry/proto/collector/trace/v1/trace_service.proto src/otlp/proto/opentelemetry/proto/collector/logs/v1/logs_service.proto -o src/otlp/descriptor.json"
+  },
+  "keywords": [
+    "opentelemetry",
+    "tracing",
+    "llm",
+    "visualization"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "protobufjs": "^8.8.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^26.6.5",
+    "protobufjs-cli": "^2.7.0",
+    "typescript": "^7.0.2"
+  }
+}

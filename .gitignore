@@ -1,0 +1,10 @@
+node_modules/
+.env
+test-results/
+playwright-report/
+fixtures-out/
+*.tgz
+examples/**/node_modules/
+examples/**/.venv/
+examples/**/__pycache__/
+examples/browser-page/dist/
