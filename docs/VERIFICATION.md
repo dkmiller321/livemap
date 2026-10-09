@@ -69,3 +69,20 @@ Surprises:
 
 - My first MCP attempt at E2E-16 sampled for 9 s and saw nothing: the gap between two tool calls was longer than the sampling window. Re-run with a 40 s window; not a product issue.
 - A screenshot taken right after the demo showed node badges at 0: counts arrive in a `counts` event debounced by 50 ms. The stream showed the right values (shop-api 6, postgresql 4, …) a moment later.
+
+## Stage 3 — Detail (2026-10-09)
+
+Commands:
+
+- `npm run typecheck` — clean.
+- `npm test` — 87 passed, 0 failed (adds llm-content: current attributes, tool calls, input-only, no content, log events, JSON-string bodies, span events, older prompt/completion events, legacy indexed, OpenInference, source order, inference-details event; detail: HTTP, database and error extraction).
+- `npx playwright test -g "@stage0|@stage1|@stage2|@stage3" --retries=0` — 24 passed, 0 failed (29.3 s). Again with the default config: 24 passed, 0 flaky.
+
+MCP walkthrough (`playwright-headless`, demo played with `npm run demo:once`):
+
+- E2E-20: pass — clicking a13 opened the panel: name `chat gpt-4o-mini`, kind `llm`, service `shop-api`, `880 ms`, `OK`; provider openai, model gpt-4o-mini, tokens 96 / 23, finish `stop`; system and user messages, response "Order 1042 has shipped. 3 units of SKU-7 are in stock."; only `shop-api>openai` highlighted. a07 showed finish `tool_calls` and two tool calls, `lookup_order` with 1042 and `check_stock` with SKU-7.
+- E2E-21: pass — a10's waterfall had 14 rows a01…a14 in start order, depths 0,1,2,3,4,4,5,6,5,6,5,6,5,4 (a14 at 4, a08 at 6), only a10 selected; clicking a05's waterfall row showed `GET session:42`, db `redis`, only a05 selected.
+- E2E-22: pass — b05: postgresql, `INSERT INTO orders (id, sku, qty) VALUES ($1, $2, $3)`; c01: GET, `http://localhost:3000/api/recommendations?user=42`, 502, Error; a03: POST, 200.
+- E2E-23: pass — with a13 open, `/api/clear` closed the panel, emptied rows and nodes, showed the empty state, `/healthz` spans 0 and zeroed the particle and pulse counters; after a reload and a new demo, a13 again showed gpt-4o-mini. Screenshot of the panel reviewed.
+
+Surprises: none.

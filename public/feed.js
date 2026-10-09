@@ -24,6 +24,7 @@ export const FEED_MAX = 500;
 export function createFeed(container, hooks) {
   /** @type {Map<string, {row: Row, el: HTMLElement}>} */
   const byId = new Map();
+  let selected = '';
 
   /** @param {Row} row */
   function render(row) {
@@ -92,7 +93,17 @@ export function createFeed(container, hooks) {
     },
     clear() {
       byId.clear();
+      selected = '';
       container.replaceChildren();
+    },
+    /**
+     * Marks the row whose detail is open.
+     * @param {string} spanId '' for none
+     */
+    select(spanId) {
+      byId.get(selected)?.el.classList.remove('selected');
+      selected = spanId;
+      byId.get(spanId)?.el.classList.add('selected');
     },
     get size() {
       return byId.size;

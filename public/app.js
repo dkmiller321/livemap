@@ -1,4 +1,5 @@
 // Page entry: the event stream, the read-only stats hook, and wiring between map, particles and feed.
+import { createDetail } from './detail.js';
 import { createFeed } from './feed.js';
 import { createMap } from './map.js';
 import { createParticles } from './particles.js';
@@ -17,7 +18,19 @@ const map = createMap($('map'), $('legend'), {
   onEdge: () => {},
 });
 const particles = createParticles(map.canvas, { area: () => map.area });
-const feed = createFeed($('feed'), { onOpen: () => {} });
+const feed = createFeed($('feed'), { onOpen: (row, el) => detail.open(row.spanId, el) });
+const detail = createDetail($('detail-panel'), {
+  highlight: (edgeId) => map.highlight(edgeId),
+  selected: (spanId) => feed.select(spanId),
+  hidden: () => false,
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && detail.isOpen) {
+    e.preventDefault();
+    detail.close();
+  }
+});
 
 Object.defineProperty(window, '__livemap', {
   value: Object.freeze({
@@ -122,10 +135,12 @@ const handlers = {
   counts(c) {
     map.setCounts(c, Date.now());
   },
-  trace() {
+  trace(d) {
     setEmpty(false);
+    detail.traceChanged(d.traceId);
   },
   clear() {
+    detail.close(false);
     resetView();
     particles.reset();
   },

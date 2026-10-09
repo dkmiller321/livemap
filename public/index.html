@@ -22,6 +22,71 @@
           <p>Start your app with these environment variables, or run <code>npx livemap demo</code>.</p>
           <pre class="hookup" data-testid="hookup-lines"></pre>
         </div>
+
+        <section class="detail" data-testid="detail-panel" role="dialog" aria-label="Call detail" hidden>
+          <header class="detail-head">
+            <h2 class="detail-name" data-testid="detail-name"></h2>
+            <button class="icon-button" type="button" data-testid="detail-close" aria-label="Close detail">✕</button>
+          </header>
+          <dl class="facts">
+            <div><dt>Kind</dt><dd data-testid="detail-kind"></dd></div>
+            <div><dt>Service</dt><dd data-testid="detail-service"></dd></div>
+            <div><dt>Duration</dt><dd data-testid="detail-duration"></dd></div>
+            <div><dt>Status</dt><dd data-testid="detail-status"></dd></div>
+            <div class="wide"><dt>Start</dt><dd data-testid="detail-start"></dd></div>
+          </dl>
+
+          <section class="block" data-section="error" hidden>
+            <h3>Error</h3>
+            <dl class="facts">
+              <div><dt>Type</dt><dd data-testid="error-type"></dd></div>
+              <div class="wide"><dt>Message</dt><dd data-testid="error-message"></dd></div>
+            </dl>
+            <pre class="code" data-testid="error-stack"></pre>
+          </section>
+
+          <section class="block" data-section="llm" hidden>
+            <h3>LLM call</h3>
+            <dl class="facts">
+              <div><dt>Provider</dt><dd data-testid="llm-provider"></dd></div>
+              <div><dt>Model</dt><dd data-testid="llm-model"></dd></div>
+              <div><dt>Input tokens</dt><dd data-testid="llm-input-tokens"></dd></div>
+              <div><dt>Output tokens</dt><dd data-testid="llm-output-tokens"></dd></div>
+              <div><dt>Finish reason</dt><dd data-testid="llm-finish-reason"></dd></div>
+            </dl>
+            <p class="no-content" data-testid="llm-no-content">Content not captured</p>
+            <div class="messages" data-testid="llm-messages"></div>
+            <div class="tool-calls" data-testid="llm-tool-calls"></div>
+            <div class="message response" data-testid="llm-response" data-role="assistant"></div>
+          </section>
+
+          <section class="block" data-section="http" hidden>
+            <h3>HTTP</h3>
+            <dl class="facts">
+              <div><dt>Method</dt><dd data-testid="http-method"></dd></div>
+              <div><dt>Status code</dt><dd data-testid="http-status"></dd></div>
+              <div class="wide"><dt>Target</dt><dd class="mono" data-testid="http-target"></dd></div>
+            </dl>
+          </section>
+
+          <section class="block" data-section="db" hidden>
+            <h3>Database</h3>
+            <dl class="facts">
+              <div><dt>System</dt><dd data-testid="db-system"></dd></div>
+            </dl>
+            <pre class="code" data-testid="db-statement"></pre>
+          </section>
+
+          <section class="block">
+            <h3>Trace</h3>
+            <div class="waterfall" data-testid="waterfall"></div>
+          </section>
+
+          <section class="block">
+            <h3>Attributes</h3>
+            <div class="attrs" data-testid="detail-attributes"></div>
+          </section>
+        </section>
       </section>
 
       <aside class="feed-wrap" aria-label="Feed">

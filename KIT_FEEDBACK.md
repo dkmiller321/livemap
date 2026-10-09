@@ -33,5 +33,7 @@ This file is feedback on the kit itself (the PRD, the tests, CLAUDE.md and the k
 - stage 2 [good] Reading particle counts through `window.__livemap.stats()` instead of pixels made M4 and M6 testable to the millisecond (E2E-18 measured 792 / 302 / 1,999 ms travel).
 - stage 2 [spec-gap] M6 says to merge "spans on the same edge within 100 ms" but not what to do at the cap when no particle shares the edge → the oldest particle ends early; recorded in DECISIONS.md.
 - stage 2 [env] Driving the MCP browser and a shell in turns adds seconds between steps, so time-based checks (E2E-16, E2E-18) had to be sampled inside the page with a timer and read back afterwards.
+- stage 3 [spec-gap] E2E-34 asserts that an `llm-message` and an `attr-row` "read `[hidden]`", which only works if the role and the attribute key are not part of the element's text, and the selector contract does not say so → the role and key are drawn with CSS `::before` from `data-role` / `data-key`, so the elements' text is exactly the (masked) value.
+- stage 3 [good] Writing the waterfall depths for every hop (E2E-21) into the spec caught nothing wrong, but made the trace view's ordering and depth rules unambiguous before any code existed.
 - stage 0 [env] On Windows, `LIVEMAP_BIN` pointing at `node_modules/.bin/livemap` is a `.cmd` shim that Node cannot spawn without a shell, and a shell would eat SIGINT → the helper runs the installed package's `bin/livemap.mjs` with Node directly.
 
