@@ -28,6 +28,7 @@ This file is feedback on the kit itself (the PRD, the tests, CLAUDE.md and the k
 - stage 0 [spec-gap] E2E_TESTS.md 1.3 does not say what kind `span()` defaults to, and the `kinds` fixture rows (02, 03, 08, 09, 0a) give no OpenTelemetry kind → default INTERNAL, client-call rows built as CLIENT; recorded in DECISIONS.md.
 - stage 0 [spec-gap] The PRD lists six event-stream event types, but rolling counts (M8) and live waterfall updates (D7) need more → added `counts` and `trace` events; recorded in DECISIONS.md.
 - stage 0 [good] The data-testid and data-attribute contract plus `window.__livemap.stats()` meant every spec could be written before any page existed, with no guessing about selectors.
+- stage 0 [env] On Windows, `LIVEMAP_BIN` pointing at `node_modules/.bin/livemap` is a `.cmd` shim that Node cannot spawn without a shell, and a shell would eat SIGINT → the helper runs the installed package's `bin/livemap.mjs` with Node directly.
 - stage 1 [good] The demo table in E2E_TESTS.md 1.5 with exact ids, offsets, durations and totals made the scenario a direct transcription, and its totals line doubled as a unit test.
 - stage 1 [spec-gap] E2E-07 asks to "collect every row" after the demo but gives no point at which rows are complete (client spans to unknown hosts wait up to 300 ms) → the spec waits 1 s after the demo exits before collecting.
 - stage 2 [good] Reading particle counts through `window.__livemap.stats()` instead of pixels made M4 and M6 testable to the millisecond (E2E-18 measured 792 / 302 / 1,999 ms travel).
@@ -45,5 +46,7 @@ This file is feedback on the kit itself (the PRD, the tests, CLAUDE.md and the k
 - stage 5 [dep] `@opentelemetry/sdk-trace-web` 2.x replaces, rather than merges, the default resource when `resource` is passed, which silently drops `telemetry.sdk.language=webjs` that K9 relies on → merged with `defaultResource()`.
 - stage 5 [good] E2E-38's 60-second load spec with fps, particle cap, row cap and idle checks in one test gave real confidence in the throughput target; it passed first time.
 - stage 5 [spec-gap] E2E-41 says "focus the first feed-row with the keyboard" without saying from where; the spec tabs from the top of the page, the MCP walk tabbed from the name filter.
-- stage 0 [env] On Windows, `LIVEMAP_BIN` pointing at `node_modules/.bin/livemap` is a `.cmd` shim that Node cannot spawn without a shell, and a shell would eat SIGINT → the helper runs the installed package's `bin/livemap.mjs` with Node directly.
+- acceptance [good] Final acceptance against the packed tarball in a fresh folder proved the package carries the page, the descriptor and the mask module the page imports from `src/`; all 42 specs passed against it.
+- acceptance [spec-gap] The PRD wants the page reachable within 1 s of "running the command", and the command is `npx livemap`. The packed `bin/livemap.mjs` answers `/healthz` in 0.53–0.60 s, but through `npx` on Windows it took 1.1 s, almost all npx's own start-up → recorded as a known issue rather than changed.
+- acceptance [spec-gap] Walking all 27 P0 scenarios again through the MCP server at acceptance, one tool call per step, took far longer than the specs (which cover the same ground in under 2 minutes); batching each scenario's checks into one `browser_evaluate` was the only practical way.
 
