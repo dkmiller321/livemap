@@ -1,8 +1,11 @@
-// Page entry: the event stream, the read-only stats hook and the empty state.
+// Page entry: the event stream, the read-only stats hook, the empty state and the feed.
+import { createFeed } from './feed.js';
 
-const statusEl = /** @type {HTMLElement} */ (document.querySelector('[data-testid="connection-status"]'));
-const emptyEl = /** @type {HTMLElement} */ (document.querySelector('[data-testid="empty-state"]'));
-const hookupEl = /** @type {HTMLElement} */ (document.querySelector('[data-testid="hookup-lines"]'));
+const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.querySelector(`[data-testid="${id}"]`));
+
+const statusEl = $('connection-status');
+const emptyEl = $('empty-state');
+const hookupEl = $('hookup-lines');
 
 const counters = {
   connected: false,
@@ -18,10 +21,12 @@ const counters = {
 };
 
 Object.defineProperty(window, '__livemap', {
-  value: Object.freeze({ stats: () => ({ ...counters }) }),
+  value: Object.freeze({ stats: () => ({ ...counters, rows: feed.size }) }),
   writable: false,
   configurable: false,
 });
+
+const feed = createFeed($('feed'), { onOpen: () => {} });
 
 /** @param {number} otlpPort */
 function hookupLines(otlpPort) {
@@ -47,9 +52,41 @@ function setConnected(live) {
   statusEl.dataset.live = String(live);
 }
 
+/** @param {boolean} empty */
+function setEmpty(empty) {
+  emptyEl.hidden = !empty;
+}
+
+function resetView() {
+  feed.clear();
+  setEmpty(true);
+}
+
+/** @type {Record<string, (data: any) => void>} */
+const handlers = {
+  snapshot(data) {
+    resetView();
+    for (const row of data.rows) feed.upsert(row);
+    setEmpty(data.spans === 0 && data.rows.length === 0 && data.nodes.length === 0);
+    setConnected(true);
+  },
+  span(row) {
+    feed.upsert(row);
+    setEmpty(false);
+  },
+  trace() {
+    setEmpty(false);
+  },
+  clear() {
+    resetView();
+  },
+};
+
 function connect() {
   const source = new EventSource('/events');
-  source.addEventListener('snapshot', () => setConnected(true));
+  for (const [type, handle] of Object.entries(handlers)) {
+    source.addEventListener(type, (e) => handle(JSON.parse(/** @type {MessageEvent} */ (e).data)));
+  }
   source.addEventListener('error', () => {
     setConnected(false);
     if (source.readyState === EventSource.CLOSED) {
@@ -59,5 +96,4 @@ function connect() {
   });
 }
 
-emptyEl.hidden = false;
 connect();

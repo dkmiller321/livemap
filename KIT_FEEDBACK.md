@@ -28,5 +28,7 @@ This file is feedback on the kit itself (the PRD, the tests, CLAUDE.md and the k
 - stage 0 [spec-gap] E2E_TESTS.md 1.3 does not say what kind `span()` defaults to, and the `kinds` fixture rows (02, 03, 08, 09, 0a) give no OpenTelemetry kind → default INTERNAL, client-call rows built as CLIENT; recorded in DECISIONS.md.
 - stage 0 [spec-gap] The PRD lists six event-stream event types, but rolling counts (M8) and live waterfall updates (D7) need more → added `counts` and `trace` events; recorded in DECISIONS.md.
 - stage 0 [good] The data-testid and data-attribute contract plus `window.__livemap.stats()` meant every spec could be written before any page existed, with no guessing about selectors.
+- stage 1 [good] The demo table in E2E_TESTS.md 1.5 with exact ids, offsets, durations and totals made the scenario a direct transcription, and its totals line doubled as a unit test.
+- stage 1 [spec-gap] E2E-07 asks to "collect every row" after the demo but gives no point at which rows are complete (client spans to unknown hosts wait up to 300 ms) → the spec waits 1 s after the demo exits before collecting.
 - stage 0 [env] On Windows, `LIVEMAP_BIN` pointing at `node_modules/.bin/livemap` is a `.cmd` shim that Node cannot spawn without a shell, and a shell would eat SIGINT → the helper runs the installed package's `bin/livemap.mjs` with Node directly.
 

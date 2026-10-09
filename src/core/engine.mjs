@@ -186,6 +186,7 @@ export function clearState(state) {
  */
 export function snapshot(state, now) {
   return {
+    spans: state.buffer.spans.size,
     nodes: [...state.graph.nodes.values()],
     edges: [...state.graph.edges.values()],
     rows: state.feed,
