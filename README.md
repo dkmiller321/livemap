@@ -6,11 +6,21 @@ message lights up as it happens, and a click shows what was sent and what came b
 Livemap is one local process: an OpenTelemetry receiver on `127.0.0.1:4318` and a page on
 `127.0.0.1:4400`. No account, no configuration file, nothing written to disk, nothing sent anywhere.
 
+<!-- TODO: add a short GIF of the demo map with calls flowing -->
+
 ## Try it
 
+Requires Node 20+.
+
 ```bash
-npx livemap demo --open
+git clone https://github.com/dkmiller321/livemap
+cd livemap
+npm install
+node bin/livemap.mjs demo --open
 ```
+
+Livemap is not published to npm; the `livemap` name there is an unrelated package. Run it from a
+clone, or `npm link` to put `livemap` on your PATH.
 
 The demo plays a small shop (browser, web, API, Postgres, Redis, an LLM, an agent with two tools,
 a queue and a worker) through the real receiver, with about one call in ten failing.
@@ -20,7 +30,7 @@ a queue and a worker) through the real receiver, with about one call in ten fail
 Start Livemap:
 
 ```bash
-npx livemap
+node bin/livemap.mjs
 ```
 
 Then start your app with these four environment variables. They work for any OpenTelemetry SDK:
@@ -32,7 +42,7 @@ OTEL_TRACES_EXPORTER=otlp
 OTEL_BSP_SCHEDULE_DELAY=200
 ```
 
-Add `OTEL_SERVICE_NAME=<name>` to name your app on the map. `npx livemap init` looks at the current
+Add `OTEL_SERVICE_NAME=<name>` to name your app on the map. `node bin/livemap.mjs init` looks at the current
 folder and prints the exact lines for Node or Python. Full recipes, including LLM prompt capture:
 
 - [Node](docs/hookups/node.md): `node --require @opentelemetry/auto-instrumentations-node/register src/app.js`
@@ -59,13 +69,30 @@ livemap init
 If a port is taken, Livemap exits with code 1 and names the flag that changes it. Port 4317
 (OpenTelemetry gRPC) is never used.
 
+## How it works
+
+```
+Your app (any OpenTelemetry SDK)
+      |  OTLP/HTTP protobuf
+      v
+Receiver :4318 ──> classify each span (HTTP, DB, LLM, agent, queue) and pair client/server spans
+      |
+      v
+In-memory store (last 5,000 spans, nothing on disk)
+      |  live stream
+      v
+Page :4400 ──> map, feed and span detail
+```
+
+One Node process, no build step for the page, and no dependencies on a collector or a database.
+
 ## Developing
 
 ```bash
 npm install
 npm start                 # Livemap on :4400 / :4318
 npm run demo:once         # play the fixed demo into a running Livemap
-npm test                  # unit tests
+npm test                  # 90 unit tests
 npm run typecheck
 npm run test:e2e          # Playwright specs (starts Livemap, and the examples once set up)
 npm run examples:setup    # install the Node, Python and browser examples
